@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2023-05-09 Tue 06:47 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>dating simulation</title>
+<meta name="generator" content="Org mode" />
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/htmlize.css"/>
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/readtheorg.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/lib/js/jquery.stickytableheaders.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/js/readtheorg.js"></script>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">dating simulation</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#orgc965a32">1. Setup</a>
+<ul>
+<li><a href="#orge4082bf">1.1. Create conda environment and set up org babel using this environment</a></li>
+<li><a href="#org05fb94a">1.2. Install dependencies</a></li>
+<li><a href="#org40938af">1.3. set up openai env</a></li>
+</ul>
+</li>
+<li><a href="#orgcc29e04">2. Main</a>
+<ul>
+<li><a href="#org4665601">2.1. Import dependencies</a></li>
+<li><a href="#org877ab54">2.2. Create CAMEL assistant</a></li>
+<li><a href="#orgb1b82d1">2.3. System message that define the behavior of two bot</a></li>
+<li><a href="#orgdf8abd3">2.4. Create bots</a></li>
+<li><a href="#org6583e3b">2.5. Make them talk</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgc965a32" class="outline-2">
+<h2 id="orgc965a32"><span class="section-number-2">1</span> Setup</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-orge4082bf" class="outline-3">
+<h3 id="orge4082bf"><span class="section-number-3">1.1</span> Create conda environment and set up org babel using this environment</h3>
+<div class="outline-text-3" id="text-1-1">
+<div class="org-src-container">
+<pre class="src src-elisp">(setq org-babel-python-command "/home/vermin/anaconda3/envs/learn_langchain/bin/python" )
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org05fb94a" class="outline-3">
+<h3 id="org05fb94a"><span class="section-number-3">1.2</span> Install dependencies</h3>
+<div class="outline-text-3" id="text-1-2">
+<div class="org-src-container">
+<pre class="src src-shell">/home/vermin/anaconda3/envs/learn_langchain/bin/python -m pip install langchain openai python-dotenv
+
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org40938af" class="outline-3">
+<h3 id="org40938af"><span class="section-number-3">1.3</span> set up openai env</h3>
+<div class="outline-text-3" id="text-1-3">
+<div class="org-src-container">
+<pre class="src src-python">import os
+from configparser import ConfigParser
+
+config = ConfigParser()
+OPENAI_API_KEY = None
+OPENAI_API_BASE = None
+
+
+def openai_setup():
+    global OPENAI_API_KEY, OPENAI_API_BASE
+    OPENAI_API_KEY = None
+    OPENAI_API_BASE = None
+    if os.environ.get('OPENAI_API_KEY'):
+	OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    else:
+	OPENAI_API_KEY = config['openai']['OPENAI_API_KEY']
+	os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+    if os.environ.get('OPENAI_API_BASE'):
+	OPENAI_API_BASE = os.environ.get('OPENAI_API_BASE')
+    else:
+	OPENAI_API_BASE = config['openai']['OPENAI_API_BASE']
+	os.environ["OPENAI_API_BASE"] = OPENAI_API_BASE
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-python">openai_setup()
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgcc29e04" class="outline-2">
+<h2 id="orgcc29e04"><span class="section-number-2">2</span> Main</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org4665601" class="outline-3">
+<h3 id="org4665601"><span class="section-number-3">2.1</span> Import dependencies</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+<pre class="src src-python">from langchain.chat_models import ChatOpenAI
+from langchain.schema import SystemMessage, HumanMessage, BaseMessage
+from typing import List
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org877ab54" class="outline-3">
+<h3 id="org877ab54"><span class="section-number-3">2.2</span> Create CAMEL assistant</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+CAMEL Role-Playing Autonomous Cooperative Agents
+</p>
+
+<p>
+Base on the idea at <a href="https://python.langchain.com/en/latest/use_cases/agent_simulations/camel_role_playing.html">langchain guide</a>
+</p>
+<div class="org-src-container">
+<pre class="src src-python">class Camel:
+    def __init__(self, system_message: SystemMessage):
+	self.system_message = system_message
+	self.messages: List[BaseMessage] = [self.system_message]
+	self.chatbot = ChatOpenAI(temperature=1)
+
+    def clear_messages(self):
+	self.messages = []
+	self.messages = [self.system_message]
+	return self.messages
+
+    def add_message(self, message: HumanMessage) -&gt; BaseMessage:
+	self.messages.append(message)
+	return_message = self.chatbot(self.messages)
+	self.messages.append(return_message)
+	return self.messages[-1]
+
+</pre>
+</div>
+
+
+<div class="org-src-container">
+<pre class="src src-python">
+openai=ChatOpenAI()
+description_of_normal_dating = openai([HumanMessage(content="Description of normal dating process")]).content
+description_of_normal_dating
+
+</pre>
+</div>
+
+<pre class="example">
+The normal dating process typically involves getting to know someone, going on dates, and developing a relationship. It can involve different levels of commitment, depending on the individuals involved. It is important to communicate openly and honestly with your partner to ensure that both parties are on the same page.
+</pre>
+</div>
+</div>
+<div id="outline-container-orgb1b82d1" class="outline-3">
+<h3 id="orgb1b82d1"><span class="section-number-3">2.3</span> System message that define the behavior of two bot</h3>
+<div class="outline-text-3" id="text-2-3">
+<div class="org-src-container">
+<pre class="src src-python">alice_init = SystemMessage(content=f"""Never forget you are a girl name Alice, and I am Bob, we are a dating process.
+The conversation must creative and interesting, don't repeat the same pattern.
+The conversation should not more than 10 messages.
+Try to find out if you are compatible with each other or not. Arrange another meeting if you are compatible before the conversation ends.
+{description_of_normal_dating}
+The conversation will end with &lt;DONE&gt;.
+""")
+
+bob_init = SystemMessage(content=f"""Never forget you are the boy named Bob, and I am a girl named\
+Alice. We are on dating process.
+The conversation must creative and interesting, don't repeat the same pattern
+The conversation should not more than 10 messages.
+Try to find out if you are compatible with each other or not. Arrange another meeting if you are compatible before the conversation ends.
+{description_of_normal_dating}.
+The conversation will end with &lt;DONE&gt;.
+""")
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgdf8abd3" class="outline-3">
+<h3 id="orgdf8abd3"><span class="section-number-3">2.4</span> Create bots</h3>
+<div class="outline-text-3" id="text-2-4">
+<div class="org-src-container">
+<pre class="src src-python">alice = Camel(alice_init)
+bob = Camel(bob_init)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org6583e3b" class="outline-3">
+<h3 id="org6583e3b"><span class="section-number-3">2.5</span> Make them talk</h3>
+<div class="outline-text-3" id="text-2-5">
+<div class="org-src-container">
+<pre class="src src-python">alice.clear_messages()
+bob.clear_messages()
+bob_start = "Nice to meet you"
+print("Bob: ")
+print(bob_start)
+alice_response = alice.add_message(
+    HumanMessage(content=f"{bob_start}"))
+print("Alice: ")
+print(alice_response.content)
+</pre>
+</div>
+
+<pre class="example">
+Bob:
+Nice to meet you
+Alice:
+Nice to meet you too, Bob. So, what do you like to do in your free time?
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-python">while True:
+    bob_response = bob.add_message(HumanMessage(content=alice_response.content))
+    print("Bob:")
+    print(bob_response.content)
+    if bob_response.content.find("&lt;DONE&gt;") != -1:
+	break
+    alice_response = alice.add_message(HumanMessage(content=bob_response.content))
+    print("Alice:")
+    print(alice_response.content)
+    if alice_response.content.find("&lt;DONE&gt;") != -1:
+	break
+
+</pre>
+</div>
+
+<pre class="example">
+Bob:
+Hi Alice, I like to spend my free time outdoors, exploring nature and going on hikes. What about you?
+Alice:
+Hi Bob, I love spending time outdoors too! I enjoy going on walks, bike rides, and exploring new places. It's a great way to get some fresh air and clear my head. What's your favorite outdoor activity?
+Bob:
+My favorite outdoor activity is definitely hiking. I love the feeling of being out in nature and exploring new trails. What about you?
+Alice:
+I love hiking too! I find it so peaceful and calming. I also enjoy camping and kayaking. It's a great way to get away from the hustle and bustle of everyday life. Do you like to camp or kayak as well?
+Bob:
+I do like to camp and kayak! I find it so relaxing and peaceful. It's a great way to get away from the stress of everyday life. Do you have any other hobbies or interests?
+Alice:
+I do! I love reading, cooking, and playing board games. I also enjoy going to the movies and trying new restaurants. It's always fun to explore new places and try new things. What about you?
+Bob:
+I also enjoy reading, cooking, and playing board games. I also like to go to the movies and try new restaurants. It's always fun to explore new places and try new things. Do you think we would be compatible?
+Alice:
+I think we would be a great match! We have a lot of similar interests and hobbies, and it sounds like we both enjoy spending time outdoors. Would you like to arrange another meeting so we can get to know each other better?
+Bob:
+Absolutely! I would love to arrange another meeting so we can get to know each other better. What day and time works best for you?
+Alice:
+That sounds great! How about this Saturday at 2 pm? Does that work for you?
+Bob:
+That sounds perfect! I'll see you this Saturday at 2 pm. Looking forward to it!
+Alice:
+Me too! See you then. &lt;DONE&gt;
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Created: 2023-05-09 Tue 06:47</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
