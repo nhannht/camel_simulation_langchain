@@ -1,0 +1,29 @@
+name: publish
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: inject header file at the first line
+        run: |
+          bash build.sh
+      - uses: purcell/setup-emacs@master
+        with:
+          version: 27.1
+      - name: Build html file
+        run: |
+          emacs --batch -f package-initialize -l  --visit dating_simulation.org -f org-html-export-to-html --kill
+          cp dating_simulation.html dist/index.html
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+            deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+            publish_dir: ./dist
+

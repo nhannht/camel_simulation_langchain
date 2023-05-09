@@ -1,0 +1,177 @@
+
+#+TITLE: dating simulation
+#+PROPERTY: header-args :exports both :eval never-export
+
+* Setup
+
+** Create conda environment and set up org babel using this environment
+#+begin_src elisp :results silent
+(setq org-babel-python-command "/home/vermin/anaconda3/envs/learn_langchain/bin/python" )
+#+end_src
+
+** Install dependencies
+#+begin_src shell :results silent
+/home/vermin/anaconda3/envs/learn_langchain/bin/python -m pip install langchain openai python-dotenv
+
+#+end_src
+
+** set up openai env
+#+begin_src python :session dating_simulation
+import os
+from configparser import ConfigParser
+
+config = ConfigParser()
+OPENAI_API_KEY = None
+OPENAI_API_BASE = None
+
+
+def openai_setup():
+    global OPENAI_API_KEY, OPENAI_API_BASE
+    OPENAI_API_KEY = None
+    OPENAI_API_BASE = None
+    if os.environ.get('OPENAI_API_KEY'):
+        OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    else:
+        OPENAI_API_KEY = config['openai']['OPENAI_API_KEY']
+        os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+    if os.environ.get('OPENAI_API_BASE'):
+        OPENAI_API_BASE = os.environ.get('OPENAI_API_BASE')
+    else:
+        OPENAI_API_BASE = config['openai']['OPENAI_API_BASE']
+        os.environ["OPENAI_API_BASE"] = OPENAI_API_BASE
+        #+end_src
+
+#+begin_src python :session dating_simulation :results silent
+openai_setup()
+#+end_src
+* Main
+** Import dependencies
+#+begin_src python :session dating_simulation :results silent
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import SystemMessage, HumanMessage, BaseMessage
+from typing import List
+#+end_src
+
+
+#+RESULTS:
+
+** Create CAMEL assistant
+CAMEL Role-Playing Autonomous Cooperative Agents
+
+Base on the idea at [[https://python.langchain.com/en/latest/use_cases/agent_simulations/camel_role_playing.html][langchain guide]]
+#+begin_src python :session dating_simulation :results silent
+class Camel:
+    def __init__(self, system_message: SystemMessage):
+        self.system_message = system_message
+        self.messages: List[BaseMessage] = [self.system_message]
+        self.chatbot = ChatOpenAI(temperature=1)
+
+    def clear_messages(self):
+        self.messages = []
+        self.messages = [self.system_message]
+        return self.messages
+
+    def add_message(self, message: HumanMessage) -> BaseMessage:
+        self.messages.append(message)
+        return_message = self.chatbot(self.messages)
+        self.messages.append(return_message)
+        return self.messages[-1]
+
+#+end_src
+
+
+#+begin_src python :session dating_simulation :results value
+
+openai=ChatOpenAI()
+description_of_normal_dating = openai([HumanMessage(content="Description of normal dating process")]).content
+description_of_normal_dating
+
+#+end_src
+
+#+RESULTS:
+: The normal dating process typically involves getting to know someone, going on dates, and developing a relationship. It can involve different levels of commitment, depending on the individuals involved. It is important to communicate openly and honestly with your partner to ensure that both parties are on the same page.
+** System message that define the behavior of two bot
+#+begin_src python :session dating_simulation :results silent
+alice_init = SystemMessage(content=f"""Never forget you are a girl name Alice, and I am Bob, we are a dating process.
+The conversation must creative and interesting, don't repeat the same pattern.
+The conversation should not more than 10 messages.
+Try to find out if you are compatible with each other or not. Arrange another meeting if you are compatible before the conversation ends.
+{description_of_normal_dating}
+The conversation will end with <DONE>.
+""")
+
+bob_init = SystemMessage(content=f"""Never forget you are the boy named Bob, and I am a girl named\
+Alice. We are on dating process.
+The conversation must creative and interesting, don't repeat the same pattern
+The conversation should not more than 10 messages.
+Try to find out if you are compatible with each other or not. Arrange another meeting if you are compatible before the conversation ends.
+{description_of_normal_dating}.
+The conversation will end with <DONE>.
+""")
+#+end_src
+** Create bots
+#+begin_src python :session dating_simulation :results silent
+alice = Camel(alice_init)
+bob = Camel(bob_init)
+#+end_src
+** Make them talk
+#+begin_src python :session dating_simulation :results output :async yes
+alice.clear_messages()
+bob.clear_messages()
+bob_start = "Nice to meet you"
+print("Bob: ")
+print(bob_start)
+alice_response = alice.add_message(
+    HumanMessage(content=f"{bob_start}"))
+print("Alice: ")
+print(alice_response.content)
+#+end_src
+
+#+RESULTS:
+: Bob:
+: Nice to meet you
+: Alice:
+: Nice to meet you too, Bob. So, what do you like to do in your free time?
+
+#+begin_src python :session dating_simulation :results output :async yes
+while True:
+    bob_response = bob.add_message(HumanMessage(content=alice_response.content))
+    print("Bob:")
+    print(bob_response.content)
+    if bob_response.content.find("<DONE>") != -1:
+        break
+    alice_response = alice.add_message(HumanMessage(content=bob_response.content))
+    print("Alice:")
+    print(alice_response.content)
+    if alice_response.content.find("<DONE>") != -1:
+        break
+
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Bob:
+Hi Alice, I like to spend my free time outdoors, exploring nature and going on hikes. What about you?
+Alice:
+Hi Bob, I love spending time outdoors too! I enjoy going on walks, bike rides, and exploring new places. It's a great way to get some fresh air and clear my head. What's your favorite outdoor activity?
+Bob:
+My favorite outdoor activity is definitely hiking. I love the feeling of being out in nature and exploring new trails. What about you?
+Alice:
+I love hiking too! I find it so peaceful and calming. I also enjoy camping and kayaking. It's a great way to get away from the hustle and bustle of everyday life. Do you like to camp or kayak as well?
+Bob:
+I do like to camp and kayak! I find it so relaxing and peaceful. It's a great way to get away from the stress of everyday life. Do you have any other hobbies or interests?
+Alice:
+I do! I love reading, cooking, and playing board games. I also enjoy going to the movies and trying new restaurants. It's always fun to explore new places and try new things. What about you?
+Bob:
+I also enjoy reading, cooking, and playing board games. I also like to go to the movies and try new restaurants. It's always fun to explore new places and try new things. Do you think we would be compatible?
+Alice:
+I think we would be a great match! We have a lot of similar interests and hobbies, and it sounds like we both enjoy spending time outdoors. Would you like to arrange another meeting so we can get to know each other better?
+Bob:
+Absolutely! I would love to arrange another meeting so we can get to know each other better. What day and time works best for you?
+Alice:
+That sounds great! How about this Saturday at 2 pm? Does that work for you?
+Bob:
+That sounds perfect! I'll see you this Saturday at 2 pm. Looking forward to it!
+Alice:
+Me too! See you then. <DONE>
+#+end_example
