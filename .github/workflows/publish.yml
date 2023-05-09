@@ -19,6 +19,7 @@ jobs:
       - name: Build html file
         run: |
           emacs --batch -f package-initialize  --visit dating_simulation.org -f org-html-export-to-html --kill
+          mkdir -p dist
           cp dating_simulation.html dist/index.html
 
       - name: Deploy
